@@ -1,5 +1,7 @@
 import FlussonicMsePlayer from "@flussonic/flussonic-mse-player";
 
+const STATUS_TIMEOUT = 1250;
+
 class VpMsePlayer {
 	/**
 	 * Create a new VpMsePlayer instance.
@@ -9,7 +11,7 @@ class VpMsePlayer {
 	 * @param {object} [config={}] - Configuration settings for the player.
 	 * @throws Will throw an error if elementId or streamUrl is not provided.
 	 */
-	constructor(elementId, streamUrl, options = {}, config = {}) {
+	constructor(elementId, streamUrl, options = { progressUpdateTime: 750 }, config = {}) {
 		if (!elementId || !streamUrl) {
 			throw new Error("Both elementId and streamUrl are required");
 		}
@@ -32,7 +34,7 @@ class VpMsePlayer {
 			throw new Error(`Element with id "${this.elementId}" not found.`);
 		}
 		this.videoContainer = videoContainer;
-		this.createVideo();
+		this.setupHTMLTemplate();
 		this.player = new FlussonicMsePlayer(this.video, this.streamUrl, this.options);
 		this.setInitialState();
 		this.addEventListeners();
@@ -44,45 +46,35 @@ class VpMsePlayer {
 	 */
 	setInitialState() {
 		this.video.muted = true;
-		this.video.controls = this.config.controls || false;
+		this.video.controls = this.config.controls || true;
 		this.play();
+		this.offlineStatus();
 	}
 
 	/**
 	 * Create the video element inside the container.
 	 * @private
 	 */
-	createVideo() {
-		this.video = document.createElement("video");
-		this.videoContainer.appendChild(this.video);
-		this.styleVideoContainer();
-		this.styleVideo();
+	setupHTMLTemplate() {
+		const template = `
+		<div class="vp-mse-channel-status"></div>
+		<video class="vp-mse-video"></video>
+		`;
+		this.videoContainer.classList.add("vp-mse-player-container");
+		this.videoContainer.innerHTML = template;
+		this.video = this.videoContainer.querySelector("video");
+		this.channelStatus = this.videoContainer.querySelector(".vp-mse-channel-status");
+		this.setSize();
 	}
 
 	/**
-	 * Apply styles to the video container.
+	 * Apply size settings to the video container.
 	 * @private
 	 */
-	styleVideoContainer() {
+	setSize() {
 		const { width = "100%", height = "100%" } = this.config.size || {};
 		this.videoContainer.style.width = typeof width === "number" ? `${width}px` : width;
 		this.videoContainer.style.height = typeof height === "number" ? `${height}px` : height;
-		this.videoContainer.style.position = "relative";
-		this.videoContainer.style.overflow = "hidden";
-		this.videoContainer.style.backgroundColor = "black";
-		this.videoContainer.classList.add("vp-mse-player-container");
-	}
-
-	/**
-	 * Apply styles to the video element.
-	 * @private
-	 */
-	styleVideo() {
-		this.video.style.position = "absolute";
-		this.video.style.objectFit = "cover";
-		this.video.style.border = "none";
-		this.video.style.width = "100%";
-		this.video.style.height = "100%";
 	}
 
 	/**
@@ -90,9 +82,68 @@ class VpMsePlayer {
 	 * @private
 	 */
 	addEventListeners() {
-		this.player.onProgress = (progress) => {
-			console.warn("Progress:", progress);
+		this.player.onProgress = () => {
+			if (this.statusTimeout) {
+				clearTimeout(this.statusTimeout);
+			}
+
+			if (this.status !== "live") {
+				this.liveStatus();
+			}
+
+			this.statusTimeout = setTimeout(() => {
+				this.offlineStatus();
+			}, STATUS_TIMEOUT);
 		};
+	}
+
+	/**
+	 * Set the player status to live.
+	 * @private
+	 */
+	liveStatus() {
+		this.status = "live";
+		this.channelStatus.classList.remove("vp-mse-offline");
+		this.fire("channelLive", { message: "Channel is online" });
+	}
+
+	/**
+	 * Set the player status to offline.
+	 * @private
+	 */
+	offlineStatus() {
+		this.status = "offline";
+		this.channelStatus.classList.add("vp-mse-offline");
+		this.fire("channelOffline", { message: "Channel is offline" });
+	}
+
+	/**
+	 * Fire a custom event on an element.
+	 * @param {string} eventName - The name of the event.
+	 * @param {object} detail - The event detail object.
+	 * @param {object} options - Event options.
+	 * @private
+	 */
+
+	fire(eventName, detail, options = {}) {
+		const event = new CustomEvent(eventName, {
+			detail: detail,
+			bubbles: options.bubbles || true,
+			cancelable: options.cancelable || true,
+		});
+		this.videoContainer.dispatchEvent(event);
+	}
+
+	/**
+	 * Add an event listener to the player.
+	 * @param {string} eventName - The name of the event.
+	 * @param {function} callback - The event callback function.
+	 * @param {object} options - Event options.
+	 * @returns {void}
+	 */
+
+	on(eventName, callback, options = {}) {
+		this.videoContainer.addEventListener(eventName, callback, options);
 	}
 
 	/**
@@ -121,6 +172,16 @@ class VpMsePlayer {
 	stop() {
 		if (this.player) {
 			this.player.stop();
+		}
+	}
+
+	/**
+	 * Restart video playback.
+	 */
+	restart() {
+		if (this.player) {
+			this.player.stop();
+			this.player.play();
 		}
 	}
 

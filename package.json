@@ -15,6 +15,11 @@
 		"@flussonic/flussonic-mse-player": "^24.6.1-2-gd4ac37d"
 	},
 	"devDependencies": {
+		"babel-loader": "^9.2.1",
+		"css-loader": "^7.1.2",
+		"sass": "^1.83.4",
+		"sass-loader": "^16.0.4",
+		"style-loader": "^4.0.0",
 		"webpack": "^5.97.1",
 		"webpack-cli": "^6.0.1"
 	}
