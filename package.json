@@ -1,0 +1,21 @@
+{
+	"name": "vp-mse-player",
+	"version": "1.0.0",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "webpack",
+		"dev": "webpack --watch --mode=development"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"dependencies": {
+		"@flussonic/flussonic-mse-player": "^24.6.1-2-gd4ac37d"
+	},
+	"devDependencies": {
+		"webpack": "^5.97.1",
+		"webpack-cli": "^6.0.1"
+	}
+}
