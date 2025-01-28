@@ -206,6 +206,4 @@ class VpMsePlayer {
 	}
 }
 
-window.VpMsePlayer = VpMsePlayer;
-
 export default VpMsePlayer;

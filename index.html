@@ -5,7 +5,6 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>MSE-LD Player Test</title>
-	<script src="./dist/main.js"></script>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -21,18 +20,20 @@
 
 <body>
 	<div id="player"></div>
+	<script type="module" src="./dist/main.js">
+	</script>
 	<script>
 		const streamUrl = "ws://realtime7.alpha.gjirafa.tech/live/B415E9CF-9754-46F4-92BD-24453BB28870/mse_ld";
 		const config = {}
 		const options = {}
-		const vpMsePlayer = new VpMsePlayer("player", streamUrl, options, config);
-		vpMsePlayer.on("channelLive", () => {
-			console.log("Channel is online");
-		});
+		// const vpMsePlayer = new VpMsePlayer("player", streamUrl, options, config);
+		// vpMsePlayer.on("channelLive", () => {
+		// 	console.log("Channel is online");
+		// });
 
-		vpMsePlayer.on("channelOffline", () => {
-			console.log("Channel is offline");
-		});
+		// vpMsePlayer.on("channelOffline", () => {
+		// 	console.log("Channel is offline");
+		// });
 	</script>
 </body>
 

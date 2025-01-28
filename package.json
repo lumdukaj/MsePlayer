@@ -2,6 +2,7 @@
 	"name": "vp-mse-player",
 	"version": "1.0.4",
 	"main": "dist/main.js",
+	"types": "src/vp-mse-player.d.ts",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "webpack",
