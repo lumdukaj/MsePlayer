@@ -1,7 +1,7 @@
 {
 	"name": "vp-mse-player",
 	"version": "1.0.6",
-	"main": "./src/index.js",
+	"main": "./dist/main.js",
 	"type": "module",
 	"types": "src/vp-mse-player.d.ts",
 	"scripts": {
