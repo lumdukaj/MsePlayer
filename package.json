@@ -2,12 +2,18 @@
 	"name": "vp-mse-player",
 	"version": "1.0.5",
 	"main": "dist/main.js",
+	"type": "module",
 	"types": "src/vp-mse-player.d.ts",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "",
 		"build": "webpack",
 		"dev": "webpack --watch --mode=development"
 	},
+	"files": [
+		"index.js",
+		"src/",
+		"README.md"
+	],
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
