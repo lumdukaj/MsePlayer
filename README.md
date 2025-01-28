@@ -1,12 +1,11 @@
 # VpMsePlayer
 
-`VpMsePlayer` is a JavaScript library for creating and managing video players using the `@flussonic/flussonic-mse-player` library. It simplifies video playback setup and provides built-in live/offline status detection and customizable player options.
+`VpMsePlayer` is a JavaScript library for creating and managing video players with the capability of playing MSE video formats. It simplifies video playback setup and provides built-in live/offline status detection and customizable player options.
 
 ---
 
 ## Features
 
-- **Seamless Integration**: Leverages `@flussonic/flussonic-mse-player` for playback.
 - **Status Detection**: Automatically detects live or offline status for streams.
 - **Customizable**: Configure player size, controls, and other behaviors.
 - **Event Hooks**: Easily integrate player events into your application.
@@ -33,7 +32,7 @@ import VpMsePlayer from "vp-mse-player";
 const player = new VpMsePlayer(
 	"video-container", // ID of the HTML container
 	"https://your-stream-url.com/stream", // Stream URL
-	{}, // Options for the player based on flussonic-mse-player
+	{}, // Options
 	{} // Configuration
 );
 
@@ -53,7 +52,7 @@ new VpMsePlayer(elementId, streamUrl, options, config);
 
 - `elementId` (string, required): ID of the HTML element to contain the player.
 - `streamUrl` (string, required): URL of the video stream.
-- `options` (object, optional): Player options passed to `@flussonic/flussonic-mse-player`.
+- `options` (object, optional).
   - Default: `{ progressUpdateTime: 750 }`.
 - `config` (object, optional): Configuration for the player.
   - `size` (object): `{ width: "100%", height: "100%" }` (default).
