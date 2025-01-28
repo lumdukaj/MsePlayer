@@ -21,16 +21,9 @@
 
 <body>
 	<div id="player"></div>
-
 	<script>
-		// Replace with your Flussonic stream URL
-		//https://cdn.vpplayer.tech/agmipobm/TVsbITd-b1wGOCJduADIGQ==,7991601123/live/E07F7EC3-87F4-45DD-A982-EEA04E3F3BD1/index.m3u8
-
 		const streamUrl = "ws://realtime7.alpha.gjirafa.tech/live/B415E9CF-9754-46F4-92BD-24453BB28870/mse_ld";
-		const config = {
-
-		}
-
+		const config = {}
 		const options = {}
 		const vpMsePlayer = new VpMsePlayer("player", streamUrl, options, config);
 		vpMsePlayer.on("channelLive", () => {
