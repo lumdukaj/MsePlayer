@@ -65,6 +65,7 @@ class VpMsePlayer {
 		this.video = this.videoContainer.querySelector("video");
 		this.channelStatus = this.videoContainer.querySelector(".vp-mse-channel-status");
 		this.setSize();
+		this.setStyle();
 	}
 
 	/**
@@ -75,6 +76,42 @@ class VpMsePlayer {
 		const { width = "100%", height = "100%" } = this.config.size || {};
 		this.videoContainer.style.width = typeof width === "number" ? `${width}px` : width;
 		this.videoContainer.style.height = typeof height === "number" ? `${height}px` : height;
+	}
+
+	/**
+	 * Apply style settings to the player elements.
+	 * @private
+	 */
+	setStyle() {
+		Object.assign(this.videoContainer.style, {
+			position: "relative",
+			overflow: "hidden",
+			backgroundColor: "#000",
+			width: "100%",
+			height: "100%",
+		});
+
+		Object.assign(this.video.style, {
+			position: "absolute",
+			width: "100%",
+			height: "100%",
+			top: "0",
+			left: "0",
+			border: "none",
+		});
+
+		Object.assign(this.channelStatus.style, {
+			position: "absolute",
+			top: "10px",
+			right: "10px",
+			zIndex: "9999",
+			padding: "3px 6px",
+			borderRadius: "4px",
+			backgroundColor: "#ffffff8e",
+			fontFamily: "Arial, sans-serif",
+			fontSize: "12px",
+			fontWeight: "bold",
+		});
 	}
 
 	/**
@@ -103,7 +140,9 @@ class VpMsePlayer {
 	 */
 	liveStatus() {
 		this.status = "live";
-		this.channelStatus.classList.remove("vp-mse-offline");
+		this.channelStatus.innerHTML = "Live";
+		this.channelStatus.style.backgroundColor = "#ffffff8e";
+		this.channelStatus.style.color = "#ff0000";
 		this.fire("channelLive", { message: "Channel is online" });
 	}
 
@@ -113,7 +152,9 @@ class VpMsePlayer {
 	 */
 	offlineStatus() {
 		this.status = "offline";
-		this.channelStatus.classList.add("vp-mse-offline");
+		this.channelStatus.innerHTML = "Offline";
+		this.channelStatus.style.backgroundColor = "#0000008e";
+		this.channelStatus.style.color = "#000";
 		this.fire("channelOffline", { message: "Channel is offline" });
 	}
 
@@ -205,5 +246,7 @@ class VpMsePlayer {
 		}
 	}
 }
+
+window.VpMsePlayer = VpMsePlayer;
 
 export default VpMsePlayer;
