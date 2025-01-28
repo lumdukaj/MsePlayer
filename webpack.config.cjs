@@ -1,7 +1,18 @@
+const path = require("path");
+
 module.exports = () => {
 	return {
 		entry: ["./src/index.js", "./src/style.scss"],
-
+		output: {
+			filename: "main.js",
+			path: path.resolve(__dirname, "dist"),
+			library: {
+				type: "module",
+			},
+		},
+		experiments: {
+			outputModule: true,
+		},
 		module: {
 			rules: [
 				{
@@ -19,7 +30,6 @@ module.exports = () => {
 				},
 			],
 		},
-
 		resolve: {
 			extensions: [".js", ".scss"],
 		},
