@@ -11,13 +11,8 @@ declare module "vp-mse-player" {
 		controls?: boolean;
 	}
 
-	class VpMsePlayer {
-		constructor(
-			elementId: string,
-			streamUrl: string,
-			options?: PlayerOptions,
-			config?: PlayerConfig
-		);
+	class msePlayer {
+		setup(streamUrl: string, options?: PlayerOptions, config?: PlayerConfig): void;
 
 		play(): void;
 		pause(): void;
@@ -26,9 +21,22 @@ declare module "vp-mse-player" {
 		destroy(): void;
 		setVolume(volume: number): void;
 
-		on(eventName: string, callback: (event: Event) => void): void;
+		on(
+			eventName: string,
+			callback: (event: Event) => void,
+			options?: AddEventListenerOptions
+		): void;
+		off(eventName: string, callback: (event: Event) => void): void;
+
 		fire(eventName: string, detail?: object, options?: object): void;
 	}
 
-	export default VpMsePlayer;
+	interface vpMsePlayerFunction {
+		(elementId: string): msePlayer;
+		destroy(elementId: string): void;
+	}
+
+	const vpMsePlayer: vpMsePlayerFunction;
+
+	export default vpMsePlayer;
 }
