@@ -2,25 +2,58 @@ import FlussonicMsePlayer from "@flussonic/flussonic-mse-player";
 
 const STATUS_TIMEOUT = 1250;
 
-class VpMsePlayer {
+window.vpMsePlayers = window.vpMsePlayers || new Map();
+
+const vpMsePlayer = (elementId) => {
+	const players = window.vpMsePlayers;
+	const player = players.get(elementId);
+
+	if (!elementId) {
+		return players.values().next().value;
+	}
+
+	if (player) {
+		return player;
+	} else {
+		const player = new msePlayer(elementId);
+		players.set(elementId, player);
+		return player;
+	}
+};
+
+vpMsePlayer.destroy = (elementId) => {
+	const players = window.vpMsePlayers;
+	const player = players.get(elementId);
+	if (player) {
+		players.delete(elementId);
+	}
+};
+
+class msePlayer {
 	/**
-	 * Create a new VpMsePlayer instance.
+	 * Create a new msePlayer instance.
 	 * @param {string} elementId - The ID of the HTML element to contain the player.
-	 * @param {string} streamUrl - The URL of the video stream.
-	 * @param {object} [options={}] - Options for the Flussonic MSE player.
-	 * @param {object} [config={}] - Configuration settings for the player.
-	 * @throws Will throw an error if elementId or streamUrl is not provided.
 	 */
-	constructor(elementId, streamUrl, options = { progressUpdateTime: 750 }, config = {}) {
-		if (!elementId || !streamUrl) {
-			throw new Error("Both elementId and streamUrl are required");
+	constructor(elementId) {
+		if (!elementId) {
+			throw new Error("ElementId is required");
 		}
 
 		this.elementId = elementId;
+		this.streamUrl = null;
+		this.options = null;
+		this.config = null;
+		this.player = null;
+	}
+
+	setup(streamUrl, options = { progressUpdateTime: 750 }, config = {}) {
+		if (!streamUrl) {
+			throw new Error("StreamUrl is required");
+		}
+
 		this.streamUrl = streamUrl;
 		this.options = options;
 		this.config = config;
-		this.player = null;
 		this.initPlayer();
 	}
 
@@ -29,6 +62,7 @@ class VpMsePlayer {
 	 * @private
 	 */
 	initPlayer() {
+		this.player = null;
 		const videoContainer = document.getElementById(this.elementId);
 		if (!videoContainer) {
 			throw new Error(`Element with id "${this.elementId}" not found.`);
@@ -182,9 +216,43 @@ class VpMsePlayer {
 	 * @param {object} options - Event options.
 	 * @returns {void}
 	 */
-
 	on(eventName, callback, options = {}) {
 		this.videoContainer.addEventListener(eventName, callback, options);
+		this.eventListeners = this.eventListeners || [];
+		this.eventListeners.push({ eventName, callback, options });
+	}
+
+	/**
+	 * Remove an event listener to the player.
+	 * @param {string} eventName - The name of the event.
+	 * @param {function} callback - The event callback function.
+	 * @returns {void}
+	 */
+	off(eventName, callback) {
+		this.videoContainer.removeEventListener(eventName, callback);
+	}
+
+	/**
+	 * Remove all event listeners ever added to the player.
+	 * @returns {void}
+	 * @private
+	 */
+	removeEventListeners() {
+		if (this.eventListeners) {
+			this.eventListeners.forEach(({ eventName, callback, options }) => {
+				this.videoContainer.removeEventListener(eventName, callback, options);
+			});
+		}
+	}
+
+	/**
+	 * Clear any residual status timeouts.
+	 * @private
+	 */
+	clearResiduals() {
+		if (this.statusTimeout) {
+			this.statusTimeout = clearTimeout(this.statusTimeout);
+		}
 	}
 
 	/**
@@ -230,23 +298,22 @@ class VpMsePlayer {
 	 * Destroy the player and clean up resources.
 	 */
 	destroy() {
+		this.removeEventListeners();
+		this.clearResiduals();
+		this.videoContainer.classList.remove("vp-mse-player-container");
+		this.videoContainer.innerHTML = "";
+		this.video = null;
+		this.channelStatus = null;
+		this.status = null;
 		if (this.player) {
-			this.player.destroy();
+			this.player.stop();
+			this.player.ws.destroy();
 			this.player = null;
 		}
-	}
-
-	/**
-	 * Set the player volume.
-	 * @param {number} volume - The volume level (0 to 1).
-	 */
-	setVolume(volume) {
-		if (this.player) {
-			this.player.setVolume(volume);
-		}
+		vpMsePlayer.destroy(this.elementId);
 	}
 }
 
-window.VpMsePlayer = VpMsePlayer;
+window.vpMsePlayer = vpMsePlayer;
 
-export default VpMsePlayer;
+export default vpMsePlayer;

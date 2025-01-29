@@ -1,14 +1,14 @@
 # VpMsePlayer
 
-`VpMsePlayer` is a JavaScript library for creating and managing video players with the capability of playing MSE video formats. It simplifies video playback setup and provides built-in live/offline status detection and customizable player options.
+`VpMsePlayer` is a JavaScript library designed for creating and managing video players, optimized for handling MSE video streams. It streamlines the setup process and offers advanced features like live/offline status detection, customizable configurations, and event hooks for seamless integration into applications.
 
 ---
 
 ## Features
 
-- **Status Detection**: Automatically detects live or offline status for streams.
-- **Customizable**: Configure player size, controls, and other behaviors.
-- **Event Hooks**: Easily integrate player events into your application.
+- **Stream Status Detection**: Built-in live/offline status handling.
+- **Customizable Layout**: Easily adjust player dimensions, controls, and styles.
+- **Event Listeners**: Subscribe to player events for enhanced control.
 
 ---
 
@@ -27,17 +27,14 @@ npm install vp-mse-player
 ### Basic Example
 
 ```javascript
-import VpMsePlayer from "vp-mse-player";
+import vpMsePlayer from "vp-mse-player";
 
-const player = new VpMsePlayer(
-	"video-container", // ID of the HTML container
-	"https://your-stream-url.com/stream", // Stream URL
-	{}, // Options
-	{} // Configuration
-);
+const streamUrl = "ws://your-stream-url.com/stream";
+const config = {};
+const options = {};
 
-// Start playback
-player.play();
+const player = vpMsePlayer("video-container");
+player.setup(streamUrl, options, config);
 ```
 
 ---
@@ -47,20 +44,24 @@ player.play();
 ### Constructor
 
 ```javascript
-new VpMsePlayer(elementId, streamUrl, options, config);
+const player = vpMsePlayer(elementId);
 ```
 
-- `elementId` (string, required): ID of the HTML element to contain the player.
-- `streamUrl` (string, required): URL of the video stream.
-- `options` (object, optional).
-  - Default: `{ progressUpdateTime: 750 }`.
-- `config` (object, optional): Configuration for the player.
-  - `size` (object): `{ width: "100%", height: "100%" }` (default).
-  - `controls` (boolean): Whether to show native video controls (default: `true`).
+- `elementId` (string, required): ID of the HTML container for the player.
 
 ---
 
 ### Methods
+
+#### `setup(streamUrl, options, config)`
+
+Initializes the player with the given stream URL, options, and configuration.
+
+- `streamUrl` (string, required): URL of the video stream.
+- `options` (object, optional): Player options. Default: `{ progressUpdateTime: 750 }`.
+- `config` (object, optional): Player configuration. Default:
+  - `size` (object): `{ width: "100%", height: "100%" }`
+  - `controls` (boolean): Enable/disable native controls (default: `true`).
 
 #### `play()`
 
@@ -76,41 +77,59 @@ Stops video playback and resets the player.
 
 #### `restart()`
 
-Restarts the video playback.
+Restarts video playback.
 
 #### `destroy()`
 
-Destroys the player and cleans up resources.
+Destroys the player instance and cleans up resources.
 
 #### `setVolume(volume)`
 
 Sets the player volume.
 
-- `volume` (number): A value between `0` (muted) and `1` (full volume).
+- `volume` (number): Value between `0` (mute) and `1` (full volume).
 
 #### `on(eventName, callback, options)`
 
 Adds an event listener to the player.
 
 - `eventName` (string): Name of the event.
-- `callback` (function): Function to execute when the event is fired.
-- `options` (object): Options for the event listener.
+- `callback` (function): Function to execute when the event is triggered.
+- `options` (object): Event listener options.
+
+#### `off(eventName, callback)`
+
+Removes a specific event listener from the player.
 
 ---
 
 ## Events
 
-- **`channelLive`**: Triggered when the stream status changes to live.
-- **`channelOffline`**: Triggered when the stream status changes to offline.
+- **`channelLive`**: Fired when the stream changes to a live status.
+- **`channelOffline`**: Fired when the stream changes to an offline status.
 
 ---
 
 ## Example: Live Stream Status Detection
 
 ```javascript
-const player = new VpMsePlayer("video-container", "https://your-stream-url.com/stream");
+const player = vpMsePlayer("video-container");
+const streamUrl = "ws://your-stream-url.com/stream";
+
+player.setup(streamUrl);
 
 // Listen for live/offline status events
 player.on("channelLive", () => console.log("Stream is live"));
 player.on("channelOffline", () => console.log("Stream is offline"));
+```
+
+---
+
+## Example: Destroy Player
+
+```javascript
+const player = vpMsePlayer("video-container");
+
+// Destroy the player instance
+player.destroy();
 ```

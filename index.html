@@ -22,19 +22,16 @@
 	<div id="player"></div>
 
 	<script type="module">
-		import VpMsePlayer from "./dist/main.js";
+		import vpMsePlayer from "./dist/main.js";
 
-		const streamUrl = "ws://realtime7.alpha.gjirafa.tech/live/B415E9CF-9754-46F4-92BD-24453BB28870/mse_ld";
+		const streamUrl = "ws://realtime7.alpha.gjirafa.tech/live/9171B1BD-78CF-4CBA-9DDA-C74DDAACD487/mse_ld";
 		const config = {}
 		const options = {}
-		const vpMsePlayer = new VpMsePlayer("player", streamUrl, options, config);
-		// vpMsePlayer.on("channelLive", () => {
-		// 	console.log("Channel is online");
-		// });
-
-		// vpMsePlayer.on("channelOffline", () => {
-		// 	console.log("Channel is offline");
-		// });
+		const player = vpMsePlayer("player")
+		// setup
+		player.setup(streamUrl, options, config)
+		// destroy
+		player.destroy();
 	</script>
 </body>
 
