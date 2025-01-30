@@ -194,7 +194,7 @@ class msePlayer {
 		this.status = "offline";
 		this.channelStatus.innerHTML = "Offline";
 		this.channelStatus.style.backgroundColor = "#0000008e";
-		this.channelStatus.style.color = "#000";
+		this.channelStatus.style.color = "#ffffff";
 		this.fire("channelOffline", { message: "Channel is offline" });
 	}
 
