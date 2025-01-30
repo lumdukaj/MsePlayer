@@ -15,16 +15,22 @@
 			margin: 0;
 			background-color: #f4f4f9;
 		}
+
+		.container {
+			width: 400px;
+		}
 	</style>
 </head>
 
 <body>
-	<div id="player"></div>
+	<div class="container">
+		<div id="player"></div>
+	</div>
 
 	<script type="module">
 		import vpMsePlayer from "./dist/main.js";
 
-		const streamUrl = "ws://realtime7.alpha.gjirafa.tech/live/9171B1BD-78CF-4CBA-9DDA-C74DDAACD487/mse_ld";
+		const streamUrl = "wss://realtime7.alpha.gjirafa.tech/live/0C1CF09F-E42B-42D1-8910-AE8483D39BFB/mse_ld";
 		const config = {}
 		const options = {}
 		const player = vpMsePlayer("player")

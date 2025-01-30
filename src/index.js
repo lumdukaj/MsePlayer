@@ -107,7 +107,13 @@ class msePlayer {
 	 * @private
 	 */
 	setSize() {
-		const { width = "100%", height = "100%" } = this.config.size || {};
+		if(this.config.size === undefined) {
+			this.videoContainer.style.width = "100%";
+			this.videoContainer.style.paddingTop = "56.25%";
+			return;
+		}
+
+		const { width = "100%", height = "100%" } = this.config.size;
 		this.videoContainer.style.width = typeof width === "number" ? `${width}px` : width;
 		this.videoContainer.style.height = typeof height === "number" ? `${height}px` : height;
 	}
