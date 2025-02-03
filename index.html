@@ -17,7 +17,7 @@
 		}
 
 		.container {
-			width: 400px;
+			width: 800px;
 		}
 	</style>
 </head>
@@ -30,14 +30,12 @@
 	<script type="module">
 		import vpMsePlayer from "./dist/main.js";
 
-		const streamUrl = "wss://realtime7.alpha.gjirafa.tech/live/0C1CF09F-E42B-42D1-8910-AE8483D39BFB/mse_ld";
-		const config = {}
-		const options = {}
+		const streamUrl = "wss://realtime7.alpha.gjirafa.tech/live/F72612AE-7878-4707-9CF7-7EE5862AB5C6/mse_ld";
+		const config = null
+		const options = null
 		const player = vpMsePlayer("player")
 		// setup
 		player.setup(streamUrl, options, config)
-		// destroy
-		// player.destroy();
 	</script>
 </body>
 

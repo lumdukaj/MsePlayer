@@ -1,6 +1,19 @@
 import FlussonicMsePlayer from "@flussonic/flussonic-mse-player";
 
-const STATUS_TIMEOUT = 1250;
+const STATUS_TIMEOUT = 1500;
+const RETRYPLAY_TIMEOUT = 8000;
+
+const LIVE_STATUS = "Live";
+const OFFLINE_STATUS = "Offline";
+const CONNECTING_STATUS = "Connecting";
+
+const defaultOptions = {
+	progressUpdateTime: 750,
+	connectionRetries: Infinity, // 60 retries, 1 minute wait(hard coded in Flussonic-Mse-Player) for each retry
+	errorsBeforeStop: Infinity,
+};
+
+const defaultConfig = {};
 
 window.vpMsePlayers = window.vpMsePlayers || new Map();
 
@@ -46,43 +59,51 @@ class msePlayer {
 		this.player = null;
 	}
 
-	setup(streamUrl, options = { progressUpdateTime: 750 }, config = {}) {
+	setup(streamUrl, options, config) {
 		if (!streamUrl) {
 			throw new Error("StreamUrl is required");
 		}
 
 		this.streamUrl = streamUrl;
-		this.options = options;
-		this.config = config;
-		this.initPlayer();
+		this.options = options || defaultOptions;
+		this.config = config || defaultConfig;
+		this.init();
 	}
 
 	/**
 	 * Initialize the video player.
 	 * @private
 	 */
-	initPlayer() {
-		this.player = null;
+	init() {
 		const videoContainer = document.getElementById(this.elementId);
 		if (!videoContainer) {
 			throw new Error(`Element with id "${this.elementId}" not found.`);
 		}
 		this.videoContainer = videoContainer;
 		this.setupHTMLTemplate();
-		this.player = new FlussonicMsePlayer(this.video, this.streamUrl, this.options);
+		this.initPlayer();
 		this.setInitialState();
 		this.addEventListeners();
 	}
 
+	initPlayer() {
+		try {
+			this.player = new FlussonicMsePlayer(this.video, this.streamUrl, this.options);
+		} catch (error) {
+			console.error("Error initializing FlussonicMsePlayer:", error);
+			this.nonLiveStatus();
+		}
+	}
 	/**
 	 * Set the initial state of the video element.
 	 * @private
 	 */
-	setInitialState() {
+	async setInitialState() {
 		this.video.muted = true;
 		this.video.controls = this.config.controls || true;
+		this.playbackStarted = false;
+		this.nonLiveStatus();
 		this.play();
-		this.offlineStatus();
 	}
 
 	/**
@@ -107,7 +128,7 @@ class msePlayer {
 	 * @private
 	 */
 	setSize() {
-		if(this.config.size === undefined) {
+		if (this.config.size === undefined) {
 			this.videoContainer.style.width = "100%";
 			this.videoContainer.style.paddingTop = "56.25%";
 			return;
@@ -159,19 +180,65 @@ class msePlayer {
 	 * @private
 	 */
 	addEventListeners() {
-		this.player.onProgress = () => {
-			if (this.statusTimeout) {
-				clearTimeout(this.statusTimeout);
-			}
+		this.player.onProgress = this.onProgress.bind(this);
+		this.video.onerror = this.onError.bind(this);
+		this.video.onwaiting = this.onWaiting.bind(this);
+		this.video.onprogress = this.onVideoProgress.bind(this);
+	}
+	/**
+	 * Handle progress event from the MSE player.
+	 * @private
+	 */
+	onProgress(progress) {
+		if (!this.playbackStarted) {
+			this.onStart();
+		}
 
-			if (this.status !== "live") {
-				this.liveStatus();
-			}
+		this.fire("progress", progress);
 
-			this.statusTimeout = setTimeout(() => {
-				this.offlineStatus();
-			}, STATUS_TIMEOUT);
-		};
+		if (this.retryPlayTimeout) {
+			this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
+		}
+	}
+
+	/**
+	 * @private
+	 */
+	onVideoProgress() {
+		if (!this.playbackStarted) return;
+
+		// Set status from non-live to live in case a progress event is received.
+		if (this.status !== LIVE_STATUS) {
+			this.liveStatus();
+		}
+	}
+
+	/**
+	 * @private
+	 */
+	onStart() {
+		this.playbackStarted = true;
+	}
+
+	/**
+	 * @private
+	 */
+	onWaiting() {
+		if (this.statusTimeout) {
+			this.statusTimeout = clearTimeout(this.statusTimeout);
+		}
+
+		// If no progress event is received within the timeout, set status to offline.
+		this.statusTimeout = setTimeout(() => {
+			this.nonLiveStatus();
+		}, STATUS_TIMEOUT);
+	}
+
+	/**
+	 * @private
+	 */
+	onError(error) {
+		console.warn("Video error:", error);
 	}
 
 	/**
@@ -179,23 +246,27 @@ class msePlayer {
 	 * @private
 	 */
 	liveStatus() {
-		this.status = "live";
-		this.channelStatus.innerHTML = "Live";
+		const status = LIVE_STATUS;
+		if (this.status === status) return;
+		this.status = status;
+		this.channelStatus.innerHTML = status;
 		this.channelStatus.style.backgroundColor = "#ffffff8e";
 		this.channelStatus.style.color = "#ff0000";
-		this.fire("channelLive", { message: "Channel is online" });
+		this.fire(`channel${status}`, { message: `Channel is ${status}` });
 	}
 
 	/**
-	 * Set the player status to offline.
+	 * Set the player status to non-live.
 	 * @private
 	 */
-	offlineStatus() {
-		this.status = "offline";
-		this.channelStatus.innerHTML = "Offline";
+	nonLiveStatus() {
+		const status = this.playbackStarted ? OFFLINE_STATUS : CONNECTING_STATUS;
+		if (this.status === status) return;
+		this.status = status;
+		this.channelStatus.innerHTML = status;
 		this.channelStatus.style.backgroundColor = "#0000008e";
 		this.channelStatus.style.color = "#ffffff";
-		this.fire("channelOffline", { message: "Channel is offline" });
+		this.fire(`channel${status}`, { message: `Channel is ${status}` });
 	}
 
 	/**
@@ -256,9 +327,8 @@ class msePlayer {
 	 * @private
 	 */
 	clearResiduals() {
-		if (this.statusTimeout) {
-			this.statusTimeout = clearTimeout(this.statusTimeout);
-		}
+		if (this.statusTimeout) this.statusTimeout = clearTimeout(this.statusTimeout);
+		if (this.retryPlayTimeout) this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
 	}
 
 	/**
@@ -266,8 +336,15 @@ class msePlayer {
 	 */
 	play() {
 		if (this.player) {
+			if (this.retryPlayTimeout) {
+				this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
+			}
+
+			this.handleRetry();
 			this.player.play().catch((error) => {
-				console.error("Error while playing:", error);
+				if (!this.video) return;
+				this.video.pause();
+				this.handleRetry();
 			});
 		}
 	}
@@ -291,13 +368,37 @@ class msePlayer {
 	}
 
 	/**
-	 * Restart video playback.
+	 * Restart connection to the stream.
 	 */
 	restart() {
+		console.warn("Restarting player...");
+		const elementId = this.elementId;
+		const streamUrl = this.streamUrl;
+		const options = this.options;
+		const config = this.config;
+		this.destroy();
+		vpMsePlayer(elementId).setup(streamUrl, options, config);
+	}
+
+	/**
+	 * Destroy the WebSocket worker used by the mse-player.
+	 * @private
+	 */
+	destroyWsWorker() {
 		if (this.player) {
-			this.player.stop();
-			this.player.play();
+			this.stop();
+			this.player.ws?.destroy();
 		}
+	}
+
+	handleRetry() {
+		if (this.retryPlayTimeout) {
+			this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
+		}
+
+		this.retryPlayTimeout = setTimeout(() => {
+			this.restart();
+		}, RETRYPLAY_TIMEOUT);
 	}
 
 	/**
@@ -308,12 +409,12 @@ class msePlayer {
 		this.clearResiduals();
 		this.videoContainer.classList.remove("vp-mse-player-container");
 		this.videoContainer.innerHTML = "";
+		this.video.src = "";
 		this.video = null;
 		this.channelStatus = null;
 		this.status = null;
 		if (this.player) {
-			this.player.stop();
-			this.player.ws.destroy();
+			this.destroyWsWorker();
 			this.player = null;
 		}
 		vpMsePlayer.destroy(this.elementId);
