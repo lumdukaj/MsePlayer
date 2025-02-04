@@ -387,7 +387,7 @@ class msePlayer {
 	destroyWsWorker() {
 		if (this.player) {
 			this.stop();
-			this.player.ws?.destroy();
+			if (this.player.ws) this.player.ws.destroy();
 		}
 	}
 
