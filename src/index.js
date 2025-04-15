@@ -456,7 +456,7 @@ class msePlayer {
 
 		this.initRetryPlayTimeout();
 
-		this.player.play()?.catch((error) => {
+		this.player.play().catch((error) => {
 			if (!this.video) return;
 			this.video.pause();
 			this.initRetryPlayTimeout();
