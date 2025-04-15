@@ -133,7 +133,7 @@ class msePlayer {
 
 		return new Promise((resolve, reject) => {
 			const script = document.createElement("script");
-			script.src = "https://vpplayer-assets.eu-1.cdn77-storage.com/mse-player/msePlayer.js";
+			script.src = "https://vp.gjirafa.net/mse-player/msePlayer.js";
 
 			script.onload = () => {
 				if (window.msePlayer) {

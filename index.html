@@ -31,14 +31,8 @@
 		import vpMsePlayer from "./dist/main.js";
 
 		const streamUrl = "wss://prg-8.s.cdn77.com/live/B045A58B-1E77-458B-BEBA-EFD0130EB6DB/mse_ld";
-		const options = null
-		const config = {
-			controls: true,
-		}
 		const realTimePlayer = vpMsePlayer("player")
-		window.realTimePlayer = realTimePlayer
-		// setup
-		realTimePlayer.setup(streamUrl, options, config)
+		realTimePlayer.setup(streamUrl)
 	</script>
 </body>
 
