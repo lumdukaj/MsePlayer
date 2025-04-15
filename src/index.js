@@ -158,7 +158,7 @@ class msePlayer {
 	 */
 	async setInitialState() {
 		this.video.muted = true;
-		this.video.controls = this.config.controls ?? true;
+		this.video.controls = this.config.controls;
 		this.playbackStarted = false;
 		this.nonLiveStatus();
 		this.play();
