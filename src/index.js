@@ -1,5 +1,3 @@
-import FlussonicMsePlayer from "@flussonic/flussonic-mse-player";
-
 const STATUS_TIMEOUT = 1500;
 const RETRYPLAY_TIMEOUT = 8000;
 
@@ -9,7 +7,7 @@ const CONNECTING_STATUS = "Connecting";
 
 const defaultOptions = {
 	progressUpdateTime: 750,
-	connectionRetries: Infinity, // 60 retries, 1 minute wait(hard coded in Flussonic-Mse-Player) for each retry
+	connectionRetries: Infinity,
 	errorsBeforeStop: Infinity,
 };
 
@@ -74,26 +72,68 @@ class msePlayer {
 	 * Initialize the video player.
 	 * @private
 	 */
-	init() {
+	async init() {
 		const videoContainer = document.getElementById(this.elementId);
 		if (!videoContainer) {
 			throw new Error(`Element with id "${this.elementId}" not found.`);
 		}
 		this.videoContainer = videoContainer;
 		this.setupHTMLTemplate();
-		this.initPlayer();
+		await this.initPlayer();
 		this.setInitialState();
 		this.addEventListeners();
 	}
 
-	initPlayer() {
+	/**
+	 * Initializes the MSE player instance.
+	 * If the library is already loaded, instantiates the player directly.
+	 * Otherwise, dynamically loads the library and instantiates it afterwards.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async initPlayer() {
 		try {
-			this.player = new FlussonicMsePlayer(this.video, this.streamUrl, this.options);
+			if (window.msePlayer) {
+				this.player = new window.msePlayer(this.video, this.streamUrl, this.options);
+			} else {
+				await this.loadMsePlayerLibrary();
+			}
 		} catch (error) {
-			console.error("Error initializing FlussonicMsePlayer:", error);
+			console.error("Error initializing vpMsePlayer:", error);
 			this.nonLiveStatus();
 		}
 	}
+
+	/**
+	 * Dynamically loads the msePlayer library and initializes the player.
+	 * Only loads the script if not already available on the window object.
+	 *
+	 * @returns {Promise<void>} Resolves when the library is loaded and player is initialized.
+	 */
+	loadMsePlayerLibrary() {
+		if (window.msePlayer) return Promise.resolve();
+
+		return new Promise((resolve, reject) => {
+			const script = document.createElement("script");
+			script.src = "https://vpplayer-assets.eu-1.cdn77-storage.com/mse-player/msePlayer.js";
+
+			script.onload = () => {
+				if (window.msePlayer) {
+					this.player = new window.msePlayer(this.video, this.streamUrl, this.options);
+					resolve();
+				} else {
+					reject(new Error("msePlayer loaded but not available on window"));
+				}
+			};
+
+			script.onerror = () => {
+				reject(new Error("Failed to load msePlayer library"));
+			};
+
+			document.head.appendChild(script);
+		});
+	}
+
 	/**
 	 * Set the initial state of the video element.
 	 * @private
@@ -185,6 +225,7 @@ class msePlayer {
 		this.video.onwaiting = this.onWaiting.bind(this);
 		this.video.onprogress = this.onVideoProgress.bind(this);
 	}
+
 	/**
 	 * Handle progress event from the MSE player.
 	 * @private

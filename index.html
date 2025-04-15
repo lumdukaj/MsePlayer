@@ -30,12 +30,13 @@
 	<script type="module">
 		import vpMsePlayer from "./dist/main.js";
 
-		const streamUrl = "wss://realtime7.alpha.gjirafa.tech/live/F72612AE-7878-4707-9CF7-7EE5862AB5C6/mse_ld";
+		const streamUrl = "wss://prg-8.s.cdn77.com/live/DB236764-EA2A-4C13-9D58-9B4A25897CC0/mse_ld";
 		const config = null
 		const options = null
-		const player = vpMsePlayer("player")
+		const realTimePlayer = vpMsePlayer("player")
+		window.realTimePlayer = realTimePlayer
 		// setup
-		player.setup(streamUrl, options, config)
+		realTimePlayer.setup(streamUrl)
 	</script>
 </body>
 
