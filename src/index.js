@@ -11,7 +11,9 @@ const defaultOptions = {
 	errorsBeforeStop: Infinity,
 };
 
-const defaultConfig = {};
+const defaultConfig = {
+	controls: true,
+};
 
 window.vpMsePlayers = window.vpMsePlayers || new Map();
 
@@ -26,9 +28,9 @@ const vpMsePlayer = (elementId) => {
 	if (player) {
 		return player;
 	} else {
-		const player = new msePlayer(elementId);
-		players.set(elementId, player);
-		return player;
+		const playerInstance = new msePlayer(elementId);
+		players.set(elementId, playerInstance);
+		return playerInstance;
 	}
 };
 
@@ -55,6 +57,16 @@ class msePlayer {
 		this.options = null;
 		this.config = null;
 		this.player = null;
+		this.video = null;
+		this.videoContainer = null;
+		this.channelStatus = null;
+		this.status = null;
+		this.playbackStarted = false;
+		this.eventListeners = [];
+		this.statusTimeout = null;
+		this.retryPlayTimeout = null;
+		this.visibilityChangeListener = null;
+		this.wasPlayingBeforeHidden = false;
 	}
 
 	setup(streamUrl, options, config) {
@@ -63,8 +75,8 @@ class msePlayer {
 		}
 
 		this.streamUrl = streamUrl;
-		this.options = options || defaultOptions;
-		this.config = config || defaultConfig;
+		this.options = { ...defaultOptions, ...options }; // Merge options
+		this.config = { ...defaultConfig, ...config }; // Merge config
 		this.init();
 	}
 
@@ -75,13 +87,19 @@ class msePlayer {
 	async init() {
 		const videoContainer = document.getElementById(this.elementId);
 		if (!videoContainer) {
-			throw new Error(`Element with id "${this.elementId}" not found.`);
+			console.error(`Element with id "${this.elementId}" not found.`);
+			return;
 		}
 		this.videoContainer = videoContainer;
 		this.setupHTMLTemplate();
-		await this.initPlayer();
-		this.setInitialState();
-		this.addEventListeners();
+		try {
+			await this.initPlayer();
+			this.setInitialState();
+			this.addEventListeners();
+		} catch (error) {
+			console.error("Initialization failed:", error);
+			this.nonLiveStatus();
+		}
 	}
 
 	/**
@@ -140,7 +158,7 @@ class msePlayer {
 	 */
 	async setInitialState() {
 		this.video.muted = true;
-		this.video.controls = this.config.controls || true;
+		this.video.controls = this.config.controls ?? true;
 		this.playbackStarted = false;
 		this.nonLiveStatus();
 		this.play();
@@ -216,6 +234,27 @@ class msePlayer {
 	}
 
 	/**
+	 * Handles the browser's visibilitychange event.
+	 * Attempts to resume playback when the tab becomes visible again.
+	 * @private
+	 */
+	handleVisibilityChange() {
+		if (!this.player || !this.video) return;
+
+		if (document.hidden) {
+			this.wasPlayingBeforeHidden = !this.video.paused;
+		} else {
+			if (this.playbackStarted && this.wasPlayingBeforeHidden && this.video.paused) {
+				// Use a small delay to allow the browser to settle
+				setTimeout(() => {
+					this.video.play();
+				}, 200);
+			}
+			this.wasPlayingBeforeHidden = !this.video.paused;
+		}
+	}
+
+	/**
 	 * Add event listeners to the player.
 	 * @private
 	 */
@@ -224,7 +263,24 @@ class msePlayer {
 		this.video.onerror = this.onError.bind(this);
 		this.video.onwaiting = this.onWaiting.bind(this);
 		this.video.onprogress = this.onVideoProgress.bind(this);
+		this.video.onplaying = this.onPlaying.bind(this);
+		this.video.onpause = this.onPause.bind(this); // Track pause events
+
+		// Page Visibility API Listener
+		// Use a bound function so 'this' is correct and we can remove it later
+		this.visibilityChangeListener = this.handleVisibilityChange.bind(this);
+		document.addEventListener("visibilitychange", this.visibilityChangeListener);
 	}
+
+	onPlaying() {
+		this.wasPlayingBeforeHidden = true;
+		clearTimeout(this.statusTimeout);
+		this.statusTimeout = null;
+		clearTimeout(this.retryPlayTimeout);
+		this.retryPlayTimeout = null;
+	}
+
+	onPause() {}
 
 	/**
 	 * Handle progress event from the MSE player.
@@ -237,9 +293,8 @@ class msePlayer {
 
 		this.fire("progress", progress);
 
-		if (this.retryPlayTimeout) {
-			this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
-		}
+		this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
+		this.retryPlayTimeout = null;
 	}
 
 	/**
@@ -265,9 +320,8 @@ class msePlayer {
 	 * @private
 	 */
 	onWaiting() {
-		if (this.statusTimeout) {
-			this.statusTimeout = clearTimeout(this.statusTimeout);
-		}
+		this.statusTimeout = clearTimeout(this.statusTimeout);
+		this.statusTimeout = null;
 
 		// If no progress event is received within the timeout, set status to offline.
 		this.statusTimeout = setTimeout(() => {
@@ -317,7 +371,6 @@ class msePlayer {
 	 * @param {object} options - Event options.
 	 * @private
 	 */
-
 	fire(eventName, detail, options = {}) {
 		const event = new CustomEvent(eventName, {
 			detail: detail,
@@ -361,6 +414,24 @@ class msePlayer {
 				this.videoContainer.removeEventListener(eventName, callback, options);
 			});
 		}
+
+		// Remove specific listeners added directly
+		if (this.player) {
+			this.player.onProgress = null;
+		}
+		if (this.video) {
+			this.video.onerror = null;
+			this.video.onwaiting = null;
+			this.video.onprogress = null;
+			this.video.onplaying = null;
+			this.video.onpause = null;
+		}
+
+		// Remove Page Visibility listener
+		if (this.visibilityChangeListener) {
+			document.removeEventListener("visibilitychange", this.visibilityChangeListener);
+			this.visibilityChangeListener = null;
+		}
 	}
 
 	/**
@@ -368,26 +439,28 @@ class msePlayer {
 	 * @private
 	 */
 	clearResiduals() {
-		if (this.statusTimeout) this.statusTimeout = clearTimeout(this.statusTimeout);
-		if (this.retryPlayTimeout) this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
+		this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
+		this.retryPlayTimeout = null;
+		this.statusTimeout = clearTimeout(this.statusTimeout);
+		this.statusTimeout = null;
 	}
 
 	/**
 	 * Start video playback.
 	 */
 	play() {
-		if (this.player) {
-			if (this.retryPlayTimeout) {
-				this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
-			}
+		if (!this.player) return;
 
-			this.handleRetry();
-			this.player.play().catch((error) => {
-				if (!this.video) return;
-				this.video.pause();
-				this.handleRetry();
-			});
-		}
+		this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
+		this.retryPlayTimeout = null;
+
+		this.initRetryPlayTimeout();
+
+		this.player.play()?.catch((error) => {
+			if (!this.video) return;
+			this.video.pause();
+			this.initRetryPlayTimeout();
+		});
 	}
 
 	/**
@@ -432,11 +505,10 @@ class msePlayer {
 		}
 	}
 
-	handleRetry() {
-		if (this.retryPlayTimeout) {
-			this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
-		}
-
+	initRetryPlayTimeout() {
+		if (!this.player) return;
+		this.retryPlayTimeout = clearTimeout(this.retryPlayTimeout);
+		this.retryPlayTimeout = null;
 		this.retryPlayTimeout = setTimeout(() => {
 			this.restart();
 		}, RETRYPLAY_TIMEOUT);
